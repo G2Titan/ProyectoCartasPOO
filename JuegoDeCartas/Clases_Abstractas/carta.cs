@@ -1,4 +1,3 @@
-
 public abstract class Carta
 {
     public abstract string GetRepresentacion();
