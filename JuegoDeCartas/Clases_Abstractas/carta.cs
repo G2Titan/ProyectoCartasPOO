@@ -6,4 +6,8 @@ public abstract class Carta
     {
         return GetRepresentacion();
     }
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes
