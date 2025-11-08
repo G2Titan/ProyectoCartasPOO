@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
-
+namespace JuegoDeCartas.Clases_Abstractas;
+using JuegoDeCartas.Interfaces;
 public abstract class Juego
 {
    
     protected List<Jugador> jugadores;
-    protected Baraja baraja;
+    protected Baraja? baraja;
     protected List<Carta> pilaDescarte;
     protected bool juegoTerminado;
 

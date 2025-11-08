@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+namespace JuegoDeCartas.Clases_Abstractas;
+using JuegoDeCartas.Interfaces;
+using static JuegoDeCartas.Interfaces.IEstrategiaJuego;
 
 public class Jugador
 {
