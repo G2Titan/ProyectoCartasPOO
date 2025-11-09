@@ -42,6 +42,9 @@ public abstract class Juego
 
     protected abstract void EjecutarLogicaJuego();
 
+
+    public abstract int CalcularPuntos(Jugador jugador);
+
     
     protected abstract bool VerificarCondicionFinJuego();
 
