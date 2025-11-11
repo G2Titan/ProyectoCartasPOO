@@ -1,3 +1,6 @@
+
+using JuegoDeCartas.Clases_Abstractas;
+
 public class CartaPoker : Carta
 {
     public Palo Palo { get; private set; }
