@@ -23,7 +23,7 @@ public class JuegoUno : Juego
   public void InicializarJuego()
   {     
     baraja.InicializarBaraja(); 
-    // Repartir 3 cartas a cada jugador
+    // Repartir 4 cartas a cada jugador
     foreach (Jugador jugador in jugadores)
     {
       for (int i = 0; i < 4; i++)
@@ -152,12 +152,26 @@ public void JugarRonda()
   {
     return VerificarGanador();
   }
-  public override void ConfigurarJuego(List<IEstrategiaJuego> estrategias)
-  {
-    // Configurar estrategias de acuerdo a los jugadores
-    NotImplementedException notImplementedException = new NotImplementedException();
-    throw notImplementedException;
-  }
+public override void ConfigurarJuego(List<IEstrategiaJuego> estrategiasJugadores)
+{
+    baraja = new BarajaUno();
+    jugadores.Clear();
+
+    LoggearAccion("Configurando el juego de Uno...");
+
+    int i = 1;
+    foreach (var estrategia in estrategiasJugadores)
+    {
+        string nombre = $"Jugador {i++}";
+        Jugador nuevoJugador = new JugadorConcreto(nombre, estrategia);
+        jugadores.Add(nuevoJugador);
+        
+        LoggearAccion($"Jugador '{nombre}' configurado con estrategia: {estrategia.GetType().Name}");
+    }
+
+    LoggearAccion($"Juego configurado con {jugadores.Count} jugadores.");
+}
+
 
   public override int CalcularPuntos(Jugador jugador)
   {
