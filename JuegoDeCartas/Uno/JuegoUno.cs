@@ -42,40 +42,39 @@ public class JuegoUno : Juego
       mesaDeJuego.Add(cartaUnoInicial);
     }
   }
-  public void JugarRonda()
+public void JugarRonda()
+{
+  JugadorUno jugadorActual = (JugadorUno)jugadores[indiceJugadorActual];
+  Jugador siguienteJugador = jugadores[(indiceJugadorActual + 1) % jugadores.Count];
+  CartaUno cartaSuperior = mesaDeJuego.Last();
+  LoggearAccion($"{jugadorActual.Nombre} está jugando... Carta superior: {cartaSuperior}");
+
+  CartaUno? cartaJugada = jugadorActual.SeleccionarCarta(cartaSuperior, siguienteJugador);
+
+  if (cartaJugada != null)
   {
-    Jugador jugadorActual = jugadores[indiceJugadorActual];
-    CartaUno cartaSuperior = mesaDeJuego.Last();
-    CartaUno? cartaJugada = SeleccionarCarta(jugadorActual, cartaSuperior);
-    if (cartaJugada != null)
-    {
-      mesaDeJuego.Add(cartaJugada);
-      AplicarEfectoCarta(cartaJugada);
-    }
-    else
-    {
-      Carta? cartaNueva = baraja.RepartirCarta();
-      jugadorActual.TomarCarta(cartaNueva);
-    }
-    VerificarCondicionFinJuego();
-    AvanzarJugador();
+    jugadorActual.JugarCarta(cartaJugada);
+    mesaDeJuego.Add(cartaJugada);
+    LoggearAccion($"{jugadorActual.Nombre} juega {cartaJugada}");
+    AplicarEfectoCarta(cartaJugada);
   }
-  private CartaUno SeleccionarCarta(Jugador jugador, CartaUno cartaSuperior)
+  else
   {
-    var cartasValidas = jugador.Mano
-    .OfType<CartaUno>()
-    .Where(c => EsCartaValida(c, cartaSuperior))
-    .ToList();
-    if (cartasValidas.Count == 0) return null;
-    CartaUno cartaSeleccionada = cartasValidas.First();
-    jugador.JugarCarta(cartaSeleccionada);
-    return cartaSeleccionada;
+    Carta? nueva = baraja.RepartirCarta();
+    jugadorActual.TomarCarta(nueva);
+    LoggearAccion($"{jugadorActual.Nombre} toma una carta del mazo");
   }
-  private bool EsCartaValida(CartaUno carta, CartaUno cartaSuperior)
+
+  if (jugadorActual.Mano.Count == 1)
   {
-    // La carta es válida si coincide color, valor, o si es un comodín
-    return carta.Color == cartaSuperior.Color || carta.Valor == cartaSuperior.Valor || carta.Color == ColorUno.Comodin;
+    LoggearAccion($"¡{jugadorActual.Nombre} grita UNO!");
   }
+  
+  VerificarCondicionFinJuego();
+  AvanzarJugador();
+}
+
+
   private void AplicarEfectoCarta(CartaUno carta)
   {
     switch (carta.Valor)
