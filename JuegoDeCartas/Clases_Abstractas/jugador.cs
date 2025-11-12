@@ -10,9 +10,9 @@ public abstract class Jugador
     public List<Carta> Mano { get; private set; }
 
    
-    private IEstrategiaJuego estrategia;
+    protected IEstrategiaJuego? estrategia;
 
-    public Jugador(string nombre, IEstrategiaJuego estrategia)
+    public Jugador(string nombre, IEstrategiaJuego? estrategia)
     {
         this.Nombre = nombre;
         this.estrategia = estrategia;
@@ -21,13 +21,18 @@ public abstract class Jugador
 
     public AccionJuego EjecutarTurno(Juego juego)
     {
+        if (estrategia == null) throw new InvalidOperationException("No strategy configured for this player.");
         return estrategia.DecidirAccion(this, juego);
     }
 
     public Carta SeleccionarCarta(Juego juego)
     {
+        if (estrategia == null) throw new InvalidOperationException("No strategy configured for this player.");
         return estrategia.SeleccionarCarta(this, juego);
     }
+
+    // Exponer la estrategia para casos donde se necesite acceder desde juegos concretos
+    public IEstrategiaJuego? Estrategia => estrategia;
 
     public void TomarCarta(Carta carta)
     {

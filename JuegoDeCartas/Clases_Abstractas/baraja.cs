@@ -40,4 +40,18 @@ public abstract class Baraja
     {
         return cartas.Count;
     }
+    public void ReintroducirCarta(Carta carta)
+    {
+        if (carta != null)
+        {
+            cartas.Add(carta);
+        }
+    }
+    public void ReintroducirCartas(List<Carta> cartasAReintroducir)
+    {
+        if (cartasAReintroducir != null)
+        {
+            cartas.AddRange(cartasAReintroducir);
+        }
+    }
 }

@@ -45,24 +45,102 @@ public class JuegoUno : Juego
   }
 public void JugarRonda()
 {
-  JugadorUno jugadorActual = (JugadorUno)jugadores[indiceJugadorActual];
+  // Use the generic Jugador reference and prefer the IEstrategiaUno when available.
+  Jugador jugadorActual = jugadores[indiceJugadorActual];
   Jugador siguienteJugador = jugadores[(indiceJugadorActual + 1) % jugadores.Count];
   CartaUno cartaSuperior = mesaDeJuego.Last();
   LoggearAccion($"{jugadorActual.Nombre} está jugando... Carta superior: {cartaSuperior}");
 
-  CartaUno? cartaJugada = jugadorActual.SeleccionarCarta(cartaSuperior, siguienteJugador);
+  CartaUno cartaJugada = null;
+
+  // Primero intenta usar la estrategia expuesta en el jugador (si implementa IEstrategiaUno)
+  if (jugadorActual.Estrategia is JuegoDeCartas.Interfaces.IEstrategiaUno estrategiaUno)
+  {
+    cartaJugada = estrategiaUno.SeleccionarCarta(jugadorActual.Mano.AsReadOnly(), cartaSuperior, siguienteJugador);
+  }
+  else if (jugadorActual is JugadorUno jugadorUno)
+  {
+    // si el jugador es un JugadorUno que tiene su propia estrategiaUno interna
+    cartaJugada = jugadorUno.SeleccionarCarta(cartaSuperior, siguienteJugador);
+  }
 
   if (cartaJugada != null)
   {
-    jugadorActual.JugarCarta(cartaJugada);
-    mesaDeJuego.Add(cartaJugada);
-    LoggearAccion($"{jugadorActual.Nombre} juega {cartaJugada}");
-    AplicarEfectoCarta(cartaJugada);
+    // pqrq prevenir bug wilds
+    bool esComodinTomaCuatro = cartaJugada.Valor == ValorUno.ComodinTomaCuatro;
+    if (esComodinTomaCuatro)
+    {
+      // Si el jugador tenía otra carta válida que no sea comodin, no puede jugar ComodinTomaCuatro
+      bool tieneAlternativa = jugadorActual.Mano.OfType<CartaUno>()
+        .Any(c => c != cartaJugada && (c.Color == cartaSuperior.Color || c.Valor == cartaSuperior.Valor));
+      if (tieneAlternativa)
+      {
+        LoggearAccion($"Juego ilegal: {jugadorActual.Nombre} intentó jugar Comodin Toma 4 aunque tenía otra carta válida. Fuerza a robar en su lugar.");
+        Carta? nueva = baraja.RepartirCarta();
+        if (nueva != null) jugadorActual.TomarCarta(nueva);
+        LoggearAccion($"{jugadorActual.Nombre} toma una carta del mazo (penalizado por jugar Comodin Toma 4 ilegal)");
+        // No aplicar efectos, terminamos la ronda
+        VerificarCondicionFinJuego();
+        AvanzarJugador();
+        return;
+      }
+    }
+
+    if (cartaSuperior.Valor == ValorUno.ComodinTomaCuatro && cartaJugada.Valor == ValorUno.ComodinTomaCuatro)
+    {
+      LoggearAccion($"Juego prohibido: No se permite 'Comodin Toma 4' encima de otro 'Comodin Toma 4'. {jugadorActual.Nombre} debe robar en su lugar.");
+      Carta? nueva = baraja.RepartirCarta();
+      if (nueva != null) jugadorActual.TomarCarta(nueva);
+      VerificarCondicionFinJuego();
+      AvanzarJugador();
+      return;
+    }
+
+    if (cartaJugada.Color == ColorUno.Comodin)
+    {
+      bool tieneAlternativaNoWild = jugadorActual.Mano.OfType<CartaUno>()
+        .Any(c => c.Color != ColorUno.Comodin && (c.Color == cartaSuperior.Color || c.Valor == cartaSuperior.Valor));
+      if (tieneAlternativaNoWild)
+      {
+        LoggearAccion($"{jugadorActual.Nombre} intentó jugar un comodin aunque tenía alternativa no-comodin. Se fuerza a robar en su lugar para evitar loops.");
+        Carta? nueva = baraja.RepartirCarta();
+        if (nueva != null) jugadorActual.TomarCarta(nueva);
+        VerificarCondicionFinJuego();
+        AvanzarJugador();
+        return;
+      }
+    }
+
+    // Si la carta es un comodin, el jugador debe elegir un color — si no lo hace, elegimos uno por él
+    if (cartaJugada.Color == ColorUno.Comodin)
+    {
+      // Remover la carta original de la mano
+      jugadorActual.JugarCarta(cartaJugada);
+
+      // Determinar color preferido
+      ColorUno nuevoColor = ElegirColorPreferido(jugadorActual);
+
+      // Colocar en mesa una representación de la carta con el color elegido
+      CartaUno cartaEnMesa = new CartaUno(nuevoColor, cartaJugada.Valor);
+      mesaDeJuego.Add(cartaEnMesa);
+      LoggearAccion($"{jugadorActual.Nombre} juega {cartaJugada} y elige el color {nuevoColor}");
+
+      // Aplicar efecto usando la carta en mesa (que conserva el tipo/valor)
+      AplicarEfectoCarta(cartaEnMesa);
+    }
+    else
+    {
+      jugadorActual.JugarCarta(cartaJugada);
+      mesaDeJuego.Add(cartaJugada);
+      LoggearAccion($"{jugadorActual.Nombre} juega {cartaJugada}");
+      AplicarEfectoCarta(cartaJugada);
+    }
   }
   else
   {
+    // Robar una carta
     Carta? nueva = baraja.RepartirCarta();
-    jugadorActual.TomarCarta(nueva);
+    if (nueva != null) jugadorActual.TomarCarta(nueva);
     LoggearAccion($"{jugadorActual.Nombre} toma una carta del mazo");
   }
 
@@ -139,6 +217,29 @@ public void JugarRonda()
     }
   }
 
+  // Elige el color preferido del jugador (el color que más cartas tiene en su mano), o un color aleatorio si no hay preferencia
+  private ColorUno ElegirColorPreferido(Jugador jugador)
+  {
+    var contador = new Dictionary<ColorUno, int>();
+    foreach (ColorUno c in Enum.GetValues(typeof(ColorUno)))
+    {
+      if (c == ColorUno.Comodin) continue;
+      contador[c] = 0;
+    }
+
+    foreach (var c in jugador.Mano.OfType<CartaUno>())
+    {
+      if (c.Color == ColorUno.Comodin) continue;
+      contador[c.Color]++;
+    }
+
+    var max = contador.OrderByDescending(kv => kv.Value).FirstOrDefault();
+    if (max.Value > 0) return max.Key;
+
+    // Si no tiene cartas de colores, devolvemos rojo por defecto
+    return ColorUno.Rojo;
+  }
+
   public bool VerificarGanador()
   {
     return jugadores[indiceJugadorActual].Mano.Count == 0;
@@ -154,22 +255,39 @@ public void JugarRonda()
   }
 public override void ConfigurarJuego(List<IEstrategiaJuego> estrategiasJugadores)
 {
-    baraja = new BarajaUno();
-    jugadores.Clear();
+  // Si los jugadores ya fueron provistos (por el constructor), no sobrescribimos la lista.
+  if (jugadores != null && jugadores.Count > 0)
+  {
+    LoggearAccion("Jugadores ya provistos, omitiendo reconfiguración de jugadores.");
+    return;
+  }
 
-    LoggearAccion("Configurando el juego de Uno...");
+  baraja = new BarajaUno();
 
-    int i = 1;
-    foreach (var estrategia in estrategiasJugadores)
+  LoggearAccion("Configurando el juego de Uno (creando jugadores desde estrategias)...");
+
+  int i = 1;
+  foreach (var estrategia in estrategiasJugadores)
+  {
+    string nombre = $"Jugador {i++}";
+    // Intentamos crear jugadores concretos de Uno si la estrategia es compatible
+    if (estrategia is JuegoDeCartas.Interfaces.IEstrategiaUno estrategiaUno)
     {
-        string nombre = $"Jugador {i++}";
-        Jugador nuevoJugador = new JugadorConcreto(nombre, estrategia);
-        jugadores.Add(nuevoJugador);
-        
-        LoggearAccion($"Jugador '{nombre}' configurado con estrategia: {estrategia.GetType().Name}");
+      // Por defecto creamos un jugador aleatorio que delega en la estrategia
+      Jugador nuevoJugador = new JugadorUno(nombre, estrategiaUno);
+      jugadores.Add(nuevoJugador);
+      LoggearAccion($"Jugador '{nombre}' (Uno) configurado con estrategia: {estrategia.GetType().Name}");
     }
+    else
+    {
+      // Si no es una estrategia de Uno, creamos un jugador genérico
+      Jugador nuevoJugador = new JugadorConcreto(nombre, estrategia);
+      jugadores.Add(nuevoJugador);
+      LoggearAccion($"Jugador '{nombre}' configurado con estrategia genérica: {estrategia.GetType().Name}");
+    }
+  }
 
-    LoggearAccion($"Juego configurado con {jugadores.Count} jugadores.");
+  LoggearAccion($"Juego configurado con {jugadores.Count} jugadores.");
 }
 
 
