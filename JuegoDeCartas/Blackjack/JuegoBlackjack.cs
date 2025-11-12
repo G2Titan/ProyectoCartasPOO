@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JuegoDeCartas.Interfaces; 
-
+using JuegoDeCartas.Clases_Abstractas;
+namespace JuegoDeCartas.Blackjack;
 public class JuegoBlackjack : Juego
 {
+    private new BarajaPoker baraja;
     private Jugador dealer;
     private int rondasTotales;
     private int rondaActual;
@@ -12,6 +14,7 @@ public class JuegoBlackjack : Juego
 
     public JuegoBlackjack(int rondas)
     {
+        this.baraja = new BarajaPoker();
         this.rondasTotales = rondas;
         this.rondaActual = 0;
         this.victorias = new Dictionary<string, int>();

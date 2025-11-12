@@ -1,4 +1,5 @@
 using JuegoDeCartas.Interfaces; 
+using JuegoDeCartas.Clases_Abstractas;
 
 public class EstrategiaCautelosa : IEstrategiaJuego
 {
