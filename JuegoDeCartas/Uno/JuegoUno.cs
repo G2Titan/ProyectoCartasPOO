@@ -26,12 +26,13 @@ public class JuegoUno : Juego
     // Repartir 3 cartas a cada jugador
     foreach (Jugador jugador in jugadores)
     {
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 4; i++)
       {
         Carta carta = baraja.RepartirCarta();
         if (carta != null)
         {
           jugador.TomarCarta(carta);
+          LoggearAccion($"{jugador.Nombre} recibe una carta");
         }
       }
     }
@@ -73,8 +74,6 @@ public void JugarRonda()
   VerificarCondicionFinJuego();
   AvanzarJugador();
 }
-
-
   private void AplicarEfectoCarta(CartaUno carta)
   {
     switch (carta.Valor)
@@ -103,16 +102,19 @@ public void JugarRonda()
     Carta? carta2 = baraja.RepartirCarta();
     jugadores[indiceJugadorActual].TomarCarta(carta1);
     jugadores[indiceJugadorActual].TomarCarta(carta2);
+    LoggearAccion($"{jugadores[indiceJugadorActual].Nombre} toma 2 cartas por comodin: 'Toma Dos'");
   }
 
   private void EfectoReversa()
   {
     sentidoHorario = !sentidoHorario;
+    LoggearAccion("Comodin: Ahora el sentido del juego ha sido revertido");
   }
 
   private void EfectoSalta()
   {
     AvanzarJugador(); // Salta al siguiente jugador
+    LoggearAccion($"{jugadores[indiceJugadorActual].Nombre} es saltado por comodin: 'No juega'");
   }
 
   private void EfectoComodinTomaCuatro()
@@ -123,6 +125,7 @@ public void JugarRonda()
       Carta carta = baraja.RepartirCarta();
       jugadores[indiceJugadorActual].TomarCarta(carta);
     }
+    LoggearAccion($"{jugadores[indiceJugadorActual].Nombre} toma 4 cartas por comodin: 'Comodin Toma Cuatro'");
   }
   private void AvanzarJugador()
   {
