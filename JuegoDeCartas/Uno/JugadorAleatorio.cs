@@ -15,7 +15,10 @@ namespace JuegoDeCartas.Uno
       .Where(c => c.Color == cartaSuperior.Color || c.Valor == cartaSuperior.Valor || c.Color == ColorUno.Comodin)
       .ToList();
       if (cartasValidas.Count == 0) return null;
-
+      if (cartasValidas.Count > 0 && rng.NextDouble() < 0.3) // 30% probabilidad de decidir no jugar aunque tenga cartas
+      {
+        return null;
+      }
       return cartasValidas[rng.Next(cartasValidas.Count)];
     }
   }
